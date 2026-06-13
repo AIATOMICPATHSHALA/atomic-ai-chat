@@ -4,6 +4,12 @@ import { Bot, User } from "lucide-react";
 import Image from "next/image";
 import type { ChatMessage } from "@/types/chat";
 
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+
+import "katex/dist/katex.min.css";
+
 interface MessageBubbleProps {
   message: ChatMessage;
 }
@@ -47,11 +53,18 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
         {message.content && (
           <div
-            className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-              isUser ? "message-user rounded-tr-sm" : "message-assistant rounded-tl-sm"
+            className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+              isUser
+                ? "message-user rounded-tr-sm"
+                : "message-assistant rounded-tl-sm"
             }`}
           >
-            {message.content}
+            <ReactMarkdown
+              remarkPlugins={[remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+            >
+              {message.content}
+            </ReactMarkdown>
           </div>
         )}
       </div>
