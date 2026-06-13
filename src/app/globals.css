@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-atomic-orange: #f97316;
+  --color-atomic-orange-dark: #ea580c;
+  --color-atomic-blue: #1e40af;
+  --color-atomic-blue-light: #3b82f6;
+  --color-atomic-navy: #0f172a;
+  --color-atomic-slate: #1e293b;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-slate-900 antialiased dark:bg-atomic-navy dark:text-slate-100;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300 dark:bg-slate-600;
+  }
+}
+
+@layer utilities {
+  .chat-gradient {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #1e40af 100%);
+  }
+
+  .message-user {
+    @apply bg-atomic-orange text-white;
+  }
+
+  .message-assistant {
+    @apply bg-slate-100 text-slate-800 dark:bg-atomic-slate dark:text-slate-100;
+  }
+}
