@@ -1,12 +1,8 @@
 "use client";
 
-import { Camera, ImagePlus, Send, X, Mic } from "lucide-react";
+import { Camera, ImagePlus, Send, X } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState, useEffect } from "react";
-
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from "react-speech-recognition";
+import { useRef, useState } from "react";
 
 interface ChatInputProps {
   onSend: (text: string, imageFile?: File) => void;
@@ -22,18 +18,6 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition,
-  } = useSpeechRecognition();
-  
-  useEffect(() => {
-    if (transcript) {
-      setText(transcript);
-    }
-  }, [transcript]);
 
   const handleImageSelect = (file: File | undefined) => {
     if (!file || !file.type.startsWith("image/")) return;
@@ -126,52 +110,39 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
             title="Upload image"
             aria-label="Upload image"
           >
-            <div className="flex shrink-0 gap-1">
-  <button
-    onClick={() => fileInputRef.current?.click()}
-    disabled={disabled}
-    className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange disabled:opacity-50 dark:hover:bg-slate-800"
-    title="Upload image"
-    aria-label="Upload image"
-  >
-    <ImagePlus className="h-5 w-5" />
-  </button>
+            <ImagePlus className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={disabled}
+            className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange disabled:opacity-50 dark:hover:bg-slate-800 sm:hidden"
+            title="Take photo"
+            aria-label="Take photo with camera"
+          >
+            <Camera className="h-5 w-5" />
+          </button>
+        </div>
 
-  <button
-    type="button"
-    onClick={() => {
-      if (listening) {
-        SpeechRecognition.stopListening();
-      } else {
-        resetTranscript();
-        SpeechRecognition.startListening({
-          continuous: true,
-          language: "hi-IN",
-        });
-      }
-    }}
-    disabled={!browserSupportsSpeechRecognition}
-    className={`rounded-xl p-2.5 transition-colors ${
-      listening
-        ? "bg-red-100 text-red-500"
-        : "text-slate-500 hover:bg-slate-100 hover:text-atomic-orange"
-    }`}
-    title="Voice Input"
-    aria-label="Voice Input"
-  >
-    <Mic className="h-5 w-5" />
-  </button>
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={handleTextChange}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          placeholder={placeholder ?? "Ask your doubt here… (Shift+Enter for new line)"}
+          rows={1}
+          className="max-h-40 min-h-[44px] flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-atomic-orange focus:outline-none focus:ring-2 focus:ring-atomic-orange/20 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+        />
 
-  <button
-    onClick={() => cameraInputRef.current?.click()}
-    disabled={disabled}
-    className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange disabled:opacity-50 dark:hover:bg-slate-800 sm:hidden"
-    title="Take photo"
-    aria-label="Take photo with camera"
-  >
-    <Camera className="h-5 w-5" />
-  </button>
-</div>
+        <button
+          onClick={handleSend}
+          disabled={!canSend}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-atomic-orange text-white shadow-md transition-all hover:bg-atomic-orange-dark disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Send message"
+        >
+          <Send className="h-5 w-5" />
+        </button>
+      </div>
 
       <p className="mt-2 hidden text-center text-xs text-slate-400 sm:block dark:text-slate-500">
         Supports English, Hindi & Hinglish · Upload images or use camera on mobile
