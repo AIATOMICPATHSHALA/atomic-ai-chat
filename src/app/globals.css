@@ -43,7 +43,131 @@
   .chat-gradient {
     background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #1e40af 100%);
   }
+/* ===========================
+   AI RESPONSE STYLING
+=========================== */
 
+.message-assistant h1 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-top: 18px;
+  margin-bottom: 14px;
+  color: #ea580c;
+}
+
+.message-assistant h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 18px;
+  margin-bottom: 12px;
+  color: #f97316;
+}
+
+.message-assistant h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 16px;
+  margin-bottom: 10px;
+}
+
+.message-assistant p {
+  margin-bottom: 12px;
+  line-height: 1.85;
+}
+
+.message-assistant ul,
+.message-assistant ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.message-assistant li {
+  margin-bottom: 8px;
+  line-height: 1.7;
+}
+
+.message-assistant strong {
+  color: #ea580c;
+  font-weight: 700;
+}
+
+.message-assistant code {
+  background: #f1f5f9;
+  color: #dc2626;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.dark .message-assistant code {
+  background: #1e293b;
+  color: #f87171;
+}
+
+.message-assistant pre {
+  background: #0f172a;
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  overflow-x: auto;
+  margin: 18px 0;
+}
+
+.message-assistant table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+}
+
+.message-assistant th,
+.message-assistant td {
+  border: 1px solid #cbd5e1;
+  padding: 10px;
+}
+
+.dark .message-assistant th,
+.dark .message-assistant td {
+  border-color: #334155;
+}
+
+.message-assistant th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.dark .message-assistant th {
+  background: #1e293b;
+}
+
+.message-assistant blockquote {
+  border-left: 4px solid #f97316;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #64748b;
+  font-style: italic;
+}
+
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 12px 0;
+}
+
+.message-assistant img {
+  border-radius: 12px;
+  margin: 16px 0;
+  max-width: 100%;
+}
+
+.message-assistant hr {
+  margin: 24px 0;
+  border: none;
+  border-top: 1px solid #cbd5e1;
+}
+
+.dark .message-assistant hr {
+  border-top-color: #334155;
+}
   .message-user {
     @apply bg-atomic-orange text-white;
   }

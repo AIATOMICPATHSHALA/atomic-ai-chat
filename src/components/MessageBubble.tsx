@@ -60,11 +60,92 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             }`}
           >
             <ReactMarkdown
-              remarkPlugins={[remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-            >
-              {message.content}
-            </ReactMarkdown>
+  remarkPlugins={[remarkMath]}
+  rehypePlugins={[rehypeKatex]}
+  components={{
+    h1: ({ children }) => (
+      <h1 className="mb-4 mt-4 text-2xl font-bold text-orange-600">
+        {children}
+      </h1>
+    ),
+
+    h2: ({ children }) => (
+      <h2 className="mb-3 mt-4 text-xl font-semibold text-orange-500">
+        {children}
+      </h2>
+    ),
+
+    h3: ({ children }) => (
+      <h3 className="mb-2 mt-3 text-lg font-semibold">
+        {children}
+      </h3>
+    ),
+
+    p: ({ children }) => (
+      <p className="mb-3 leading-8">
+        {children}
+      </p>
+    ),
+
+    ul: ({ children }) => (
+      <ul className="mb-3 list-disc pl-6 space-y-2">
+        {children}
+      </ul>
+    ),
+
+    ol: ({ children }) => (
+      <ol className="mb-3 list-decimal pl-6 space-y-2">
+        {children}
+      </ol>
+    ),
+
+    li: ({ children }) => (
+      <li className="leading-7">
+        {children}
+      </li>
+    ),
+
+    strong: ({ children }) => (
+      <strong className="font-bold text-orange-600">
+        {children}
+      </strong>
+    ),
+
+    table: ({ children }) => (
+      <table className="my-4 w-full border border-slate-300">
+        {children}
+      </table>
+    ),
+
+    th: ({ children }) => (
+      <th className="border bg-slate-100 px-3 py-2 text-left">
+        {children}
+      </th>
+    ),
+
+    td: ({ children }) => (
+      <td className="border px-3 py-2">
+        {children}
+      </td>
+    ),
+
+    code({ children }) {
+      return (
+        <code className="rounded bg-slate-100 px-1 py-0.5 text-red-600">
+          {children}
+        </code>
+      );
+    },
+
+    pre: ({ children }) => (
+      <pre className="my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-white">
+        {children}
+      </pre>
+    ),
+  }}
+>
+  {message.content}
+</ReactMarkdown>
           </div>
         )}
       </div>
