@@ -17,6 +17,12 @@ import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { copyMarkdownAsRichText } from "@/lib/clipboard";
+import { QuizTimer } from "@/components/QuizTimer";
+import {
+  containsDevanagari,
+  getQuizTimerSeconds,
+  stripQuizTimerDirective,
+} from "@/lib/quiz";
 import type { ChatAttachment, ChatMessage } from "@/types/chat";
 
 import "katex/dist/katex.min.css";
@@ -96,6 +102,9 @@ function MessageBubbleComponent({
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const attachments = message.attachments ?? [];
+  const quizTimerSeconds = isUser ? null : getQuizTimerSeconds(message.content);
+  const displayContent = stripQuizTimerDirective(message.content);
+  const hasHindiText = containsDevanagari(displayContent);
   const hasAttachmentImages = attachments.some(
     (attachment) => attachment.kind === "image"
   );
@@ -152,11 +161,12 @@ function MessageBubbleComponent({
 
         {(message.content || isEditing) && (
           <div
+            lang={hasHindiText ? "hi" : undefined}
             className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
               isUser
                 ? "message-user rounded-tr-sm"
                 : "message-assistant rounded-tl-sm"
-            }`}
+            } ${hasHindiText ? "font-hindi" : ""}`}
           >
             {isEditing ? (
               <div className="space-y-2">
@@ -187,7 +197,9 @@ function MessageBubbleComponent({
                 </div>
               </div>
             ) : (
-              <ReactMarkdown
+              <>
+                {quizTimerSeconds && <div className="mb-3"><QuizTimer initialSeconds={quizTimerSeconds} /></div>}
+                <ReactMarkdown
                 remarkPlugins={[remarkMath, remarkGfm]}
                 rehypePlugins={[rehypeKatex]}
                 skipHtml
@@ -267,8 +279,9 @@ function MessageBubbleComponent({
                   ),
                 }}
               >
-                {message.content}
-              </ReactMarkdown>
+                {displayContent}
+                </ReactMarkdown>
+              </>
             )}
           </div>
         )}

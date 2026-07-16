@@ -337,7 +337,7 @@ model Course {
   updatedAt     DateTime          @updatedAt
   batches       Batch[]
   enrollments   Enrollment[]
-  memberships   BatchMembership[]
+  batchMemberships BatchMembership[]
   testAttempts  TestAttempt[]
   subscriptions Subscription[]
   accessRecords UserAccess[]
