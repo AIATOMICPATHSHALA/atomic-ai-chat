@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -9,10 +10,19 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Atomic Pathshala — AI Doubt Solver",
+  title: "Atomic Pathshala - AI Doubt Solver",
   description:
-    "Solve your academic doubts instantly in English, Hindi, or Hinglish. Upload images, use your camera, and get step-by-step explanations powered by AI.",
-  keywords: ["Atomic Pathshala", "doubt solver", "AI tutor", "Hindi", "Hinglish", "education"],
+    "Solve academic doubts instantly in English, Hindi, or Hinglish. Upload images, PDFs, screenshots, and camera photos for step-by-step AI explanations.",
+  keywords: [
+    "Atomic Pathshala",
+    "doubt solver",
+    "AI tutor",
+    "NEET",
+    "JEE",
+    "Hindi",
+    "Hinglish",
+    "education",
+  ],
   authors: [{ name: "Atomic Pathshala" }],
 };
 
@@ -34,7 +44,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <AuthSessionProvider>{children}</AuthSessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

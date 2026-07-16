@@ -82,13 +82,13 @@ export function Sidebar({
                         day: "numeric",
                         month: "short",
                       })}
-                      {" · "}
+                      {" - "}
                       {chat.messages.length} msg
                     </p>
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={(event) => {
+                      event.stopPropagation();
                       onDeleteChat(chat.id);
                     }}
                     className="mr-2 rounded-lg p-1.5 text-slate-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20"
@@ -105,7 +105,7 @@ export function Sidebar({
 
       <div className="border-t border-slate-200 p-4 dark:border-slate-700">
         <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-          © Atomic Pathshala 2025
+          (c) Atomic Pathshala 2025
         </p>
       </div>
     </aside>

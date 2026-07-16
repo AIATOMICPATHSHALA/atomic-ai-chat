@@ -2,14 +2,29 @@ export type Language = "english" | "hindi" | "hinglish";
 
 export type MessageRole = "user" | "assistant";
 
+export type AttachmentKind = "image" | "pdf";
+
+export interface ChatAttachment {
+  id: string;
+  kind: AttachmentKind;
+  name: string;
+  mimeType: string;
+  size: number;
+  url?: string;
+  base64?: string;
+  extractedText?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
+  attachments?: ChatAttachment[];
   imageUrl?: string;
   imageBase64?: string;
   imageMimeType?: string;
   timestamp: number;
+  editedAt?: number;
 }
 
 export interface ChatSession {
@@ -21,12 +36,32 @@ export interface ChatSession {
   updatedAt: number;
 }
 
+export interface StudentProfile {
+  name?: string;
+  className?: string;
+  target?: "NEET" | "JEE" | "Board" | "Other";
+  board?: string;
+  language?: Language;
+}
+
+export interface ChatRequestAttachment {
+  kind: AttachmentKind;
+  name: string;
+  mimeType: string;
+  size: number;
+  base64?: string;
+  extractedText?: string;
+}
+
 export interface ChatRequestBody {
   messages: Array<{
     role: MessageRole;
     content: string;
+    attachments?: ChatRequestAttachment[];
     imageBase64?: string;
     imageMimeType?: string;
   }>;
   language: Language;
+  stream?: boolean;
+  studentProfile?: StudentProfile;
 }

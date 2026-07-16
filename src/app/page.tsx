@@ -1,5 +1,10 @@
-import { ChatApp } from "@/components/ChatApp";
+import { AuthGate } from "@/components/AuthGate";
+import { AuthProvider } from "@/components/AuthProvider";
 
 export default function Home() {
-  return <ChatApp />;
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
 }

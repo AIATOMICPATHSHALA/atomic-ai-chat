@@ -1,0 +1,450 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  GUEST
+  STUDENT
+  BASIC
+  PRO
+  FACULTY
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum AccessPlan {
+  FREE
+  BASIC
+  PRO
+  LIFETIME
+}
+
+enum AccessType {
+  FREE_TRIAL
+  BASIC_PLAN
+  PRO_PLAN
+  ATOMIC_BATCH_FREE
+  LIFETIME_ACCESS
+}
+
+enum AccessStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  REVOKED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum AttachmentKind {
+  IMAGE
+  PDF
+  AUDIO
+  DOCUMENT
+}
+
+enum StorageProvider {
+  LOCAL
+  SUPABASE
+  S3
+}
+
+enum AuditEvent {
+  USER_CREATED
+  USER_UPDATED
+  USER_SIGNED_IN
+  USER_SIGNED_OUT
+  ROLE_CHANGED
+  SUBSCRIPTION_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  CHAT_SYNCED
+  CHAT_DELETED
+}
+
+model User {
+  id                   String               @id @default(cuid())
+  atomicId             String               @unique
+  email                String               @unique
+  emailVerified        DateTime?
+  passwordHash         String?
+  name                 String?
+  image                String?
+  role                 UserRole             @default(STUDENT)
+  isPro                Boolean              @default(false)
+  isSuspended          Boolean              @default(false)
+  lastLoginAt          DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  profile              UserProfile?
+  preferences          UserPreference?
+  aiMemory             AiMemory?
+  accounts             Account[]
+  sessions             Session[]
+  conversations        Conversation[]
+  files                StoredFile[]
+  subscriptions        Subscription[]
+  access               UserAccess?
+  grantedSubscriptions Subscription[]       @relation("SubscriptionGrantedBy")
+  passwordResetTokens  PasswordResetToken[]
+  enrollments          Enrollment[]
+  batchMemberships     BatchMembership[]
+  testAttempts         TestAttempt[]
+  usageEvents          UsageEvent[]
+  auditLogs            AuditLog[]           @relation("AuditActor")
+  targetAuditLogs      AuditLog[]           @relation("AuditTarget")
+
+  @@index([role, isSuspended])
+}
+
+model UserProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  phone               String?
+  className           String?
+  target              String   @default("NEET")
+  board               String?
+  preferredLanguage   String   @default("hinglish")
+  preferredTeachers   String[] @default([])
+  strongChapters      String[] @default([])
+  weakChapters        String[] @default([])
+  favoriteSubject     String?
+  learningPreferences Json?
+  recentActivity      Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPreference {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  theme              String   @default("system")
+  language           String   @default("hinglish")
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  privacyMode        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiMemory {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  facts        Json     @default("[]")
+  studyContext Json?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model AtomicIdSequence {
+  id        String   @id
+  nextValue Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id        String        @id
+  userId    String
+  title     String
+  language  String        @default("hinglish")
+  createdAt DateTime
+  updatedAt DateTime
+  deletedAt DateTime?
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([userId, deletedAt])
+}
+
+model ChatMessage {
+  id             String              @id
+  conversationId String
+  role           MessageRole
+  content        String              @db.Text
+  createdAt      DateTime
+  editedAt       DateTime?
+  metadata       Json?
+  conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  attachments    MessageAttachment[]
+
+  @@index([conversationId, createdAt])
+}
+
+model StoredFile {
+  id            String              @id @default(cuid())
+  ownerId       String
+  provider      StorageProvider     @default(LOCAL)
+  storageKey    String              @unique
+  publicUrl     String?
+  originalName  String
+  mimeType      String
+  size          Int
+  checksum      String?
+  extractedText String?             @db.Text
+  createdAt     DateTime            @default(now())
+  owner         User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  messageLinks  MessageAttachment[]
+
+  @@index([ownerId, createdAt])
+}
+
+model MessageAttachment {
+  id            String         @id
+  messageId     String
+  storedFileId  String?
+  kind          AttachmentKind
+  name          String
+  mimeType      String
+  size          Int
+  url           String?
+  extractedText String?        @db.Text
+  message       ChatMessage    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  storedFile    StoredFile?    @relation(fields: [storedFileId], references: [id], onDelete: SetNull)
+
+  @@index([messageId])
+  @@index([storedFileId])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  provider             String?
+  providerCustomerId   String?
+  providerPlanId       String?
+  status               SubscriptionStatus @default(TRIALING)
+  plan                 AccessPlan         @default(BASIC)
+  accessType           AccessType         @default(BASIC_PLAN)
+  accessStatus         AccessStatus       @default(ACTIVE)
+  grantedByUserId      String?
+  grantedAt            DateTime           @default(now())
+  reason               String?            @db.Text
+  batchId              String?
+  courseId             String?
+  enrollmentId         String?
+  externalEnrollmentId String?
+  syncSource           String?
+  metadata             Json?
+  startsAt             DateTime           @default(now())
+  endsAt               DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy            User?              @relation("SubscriptionGrantedBy", fields: [grantedByUserId], references: [id], onDelete: SetNull)
+  batch                Batch?             @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  course               Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  enrollment           Enrollment?        @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  effectiveAccess      UserAccess?
+
+  @@unique([provider, providerCustomerId])
+  @@index([userId, status])
+  @@index([userId, accessStatus, endsAt])
+  @@index([batchId, accessStatus])
+  @@index([courseId, accessStatus])
+  @@index([externalEnrollmentId])
+}
+
+model UserAccess {
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  subscriptionId String?       @unique
+  plan           AccessPlan    @default(FREE)
+  accessType     AccessType    @default(FREE_TRIAL)
+  status         AccessStatus  @default(EXPIRED)
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  batchId        String?
+  courseId       String?
+  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  batch          Batch?        @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  course         Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([status, plan, expiresAt])
+  @@index([batchId])
+  @@index([courseId])
+}
+
+model Course {
+  id            String            @id @default(cuid())
+  slug          String            @unique
+  title         String
+  description   String?           @db.Text
+  isPublished   Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  batches       Batch[]
+  enrollments   Enrollment[]
+  memberships   BatchMembership[]
+  testAttempts  TestAttempt[]
+  subscriptions Subscription[]
+  accessRecords UserAccess[]
+}
+
+model Batch {
+  id            String            @id @default(cuid())
+  courseId      String
+  title         String
+  schedule      Json?
+  startsAt      DateTime?
+  endsAt        DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  course        Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollments   Enrollment[]
+  memberships   BatchMembership[]
+  subscriptions Subscription[]
+  accessRecords UserAccess[]
+
+  @@index([courseId])
+}
+
+model Enrollment {
+  id                   String            @id @default(cuid())
+  userId               String
+  courseId             String
+  batchId              String?
+  status               String            @default("ACTIVE")
+  externalEnrollmentId String?
+  syncSource           String            @default("manual")
+  syncedAt             DateTime?
+  enrolledAt           DateTime          @default(now())
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course               Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch                Batch?            @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  subscriptions        Subscription[]
+  batchMemberships     BatchMembership[]
+
+  @@unique([userId, courseId])
+  @@unique([syncSource, externalEnrollmentId])
+  @@index([batchId])
+}
+
+model BatchMembership {
+  id               String      @id @default(cuid())
+  userId           String
+  batchId          String
+  courseId         String?
+  enrollmentId     String?
+  status           String      @default("ACTIVE")
+  externalMemberId String?
+  syncSource       String      @default("manual")
+  syncedAt         DateTime?
+  joinedAt         DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batch            Batch       @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  course           Course?     @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  enrollment       Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, batchId])
+  @@unique([syncSource, externalMemberId])
+  @@index([batchId, status])
+  @@index([userId, status])
+  @@index([courseId])
+}
+
+model TestAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String?
+  testName    String
+  score       Float?
+  maxScore    Float?
+  answers     Json?
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startedAt])
+  @@index([courseId])
+}
+
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([event, createdAt])
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id           String     @id @default(cuid())
+  actorUserId  String?
+  targetUserId String?
+  event        AuditEvent
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+  actor        User?      @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  target       User?      @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([event, createdAt])
+  @@index([targetUserId, createdAt])
+}
