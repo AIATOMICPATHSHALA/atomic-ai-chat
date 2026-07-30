@@ -16,11 +16,20 @@ export interface SignInInput {
 
 export interface SignUpInput extends SignInInput {
   name: string;
+  phone: string;
   className?: string;
   target: NonNullable<StudentProfile["target"]>;
   language: Language;
+  atomicBatch: NonNullable<StudentProfile["atomicBatch"]>;
 }
 
 export interface AuthActionResult {
   message?: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string; // "ADMIN" | "FACULTY" | "STUDENT" etc.
 }

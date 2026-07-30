@@ -37,6 +37,7 @@ import type {
   StudentProfile,
 } from "@/types/chat";
 import type { AuthBackend } from "@/types/auth";
+import { QuizMode } from "@/components/QuizMode";
 
 const MessageBubble = dynamic(
   () => import("@/components/MessageBubble").then((module) => module.MessageBubble),
@@ -151,6 +152,7 @@ export function ChatApp({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [failedRequest, setFailedRequest] = useState<FailedRequest | null>(null);
 
@@ -708,6 +710,7 @@ export function ChatApp({
             setError(null);
           }}
           onDeleteChat={deleteChat}
+          onOpenQuiz={() => setQuizOpen(true)}
         />
       </div>
 
@@ -729,17 +732,21 @@ export function ChatApp({
               }}
               onDeleteChat={deleteChat}
               onClose={() => setSidebarOpen(false)}
+              onOpenQuiz={() => {
+                setQuizOpen(true);
+                setSidebarOpen(false);
+              }}
             />
           </div>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 px-3 py-3 dark:border-slate-700 sm:px-4">
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-3 dark:border-slate-700 sm:px-4">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
+              className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
               aria-label="Open sidebar"
             >
               <Menu className="h-5 w-5" />
@@ -752,7 +759,7 @@ export function ChatApp({
             </h2>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto sm:gap-3">
             <LanguageSelector
               value={language}
               onChange={updateChatLanguage}
@@ -776,7 +783,7 @@ export function ChatApp({
             {userEmail ? (
               <Link
                 href="/settings"
-                className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange dark:hover:bg-slate-800"
+                className="shrink-0 rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange dark:hover:bg-slate-800"
                 aria-label="Open settings"
                 title="Settings"
               >
@@ -787,7 +794,7 @@ export function ChatApp({
                 <button
                   type="button"
                   onClick={onRequestAuth}
-                  className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange dark:hover:bg-slate-800"
+                  className="shrink-0 rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange dark:hover:bg-slate-800"
                   aria-label="Sign in"
                   title="Sign in"
                 >
@@ -795,12 +802,14 @@ export function ChatApp({
                 </button>
               )
             )}
-            <ThemeToggle />
+            <div className="shrink-0">
+              <ThemeToggle />
+            </div>
             {onSignOut && (
               <button
                 type="button"
                 onClick={onSignOut}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-red-500 dark:hover:bg-slate-800"
+                className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-red-500 dark:hover:bg-slate-800"
                 aria-label="Logout"
                 title="Logout"
               >
@@ -866,6 +875,7 @@ export function ChatApp({
           />
         </main>
       </div>
+      {quizOpen && <QuizMode onClose={() => setQuizOpen(false)} />}
     </div>
   );
 }

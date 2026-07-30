@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
+import { AuthProvider } from "@/components/AuthProvider";
 import "./globals.css";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,10 +12,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Atomic Pathshala - AI Doubt Solver",
+  title: "Atomic Guru by Atomic Pathshala",
   description:
     "Solve academic doubts instantly in English, Hindi, or Hinglish. Upload images, PDFs, screenshots, and camera photos for step-by-step AI explanations.",
   keywords: [
+    "Atomic Guru",
     "Atomic Pathshala",
     "doubt solver",
     "AI tutor",
@@ -24,6 +27,19 @@ export const metadata: Metadata = {
     "education",
   ],
   authors: [{ name: "Atomic Pathshala" }],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Atomic Guru",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -44,10 +60,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
+        <ServiceWorkerRegister />
         <ThemeProvider>
-          <AuthSessionProvider>{children}</AuthSessionProvider>
+          <AuthSessionProvider>
+  <AuthProvider>{children}</AuthProvider>
+</AuthSessionProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

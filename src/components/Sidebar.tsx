@@ -1,8 +1,9 @@
 "use client";
 
-import { MessageSquarePlus, PanelLeftClose, Trash2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import Link from "next/link";
 import type { ChatSession } from "@/types/chat";
+import { ClipboardList, CalendarDays, LayoutDashboard, MessageSquarePlus, PanelLeftClose, Trash2 } from "lucide-react";
 
 interface SidebarProps {
   chats: ChatSession[];
@@ -11,6 +12,7 @@ interface SidebarProps {
   onSelectChat: (id: string) => void;
   onDeleteChat: (id: string) => void;
   onClose?: () => void;
+  onOpenQuiz?: () => void;
 }
 
 export function Sidebar({
@@ -20,6 +22,7 @@ export function Sidebar({
   onSelectChat,
   onDeleteChat,
   onClose,
+  onOpenQuiz,
 }: SidebarProps) {
   const sortedChats = [...chats].sort((a, b) => b.updatedAt - a.updatedAt);
 
@@ -38,7 +41,7 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="p-3">
+      <div className="space-y-2 p-3">
         <button
           onClick={onNewChat}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-atomic-orange/50 bg-white px-4 py-3 text-sm font-medium text-atomic-orange transition-all hover:border-atomic-orange hover:bg-orange-50 dark:bg-slate-800 dark:hover:bg-slate-700"
@@ -46,6 +49,31 @@ export function Sidebar({
           <MessageSquarePlus className="h-4 w-4" />
           New Doubt
         </button>
+        {onOpenQuiz && (
+          <button
+            onClick={onOpenQuiz}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-atomic-blue px-4 py-3 text-sm font-medium text-white transition-all hover:bg-blue-800"
+          >
+            <ClipboardList className="h-4 w-4" />
+            NEET Quiz
+          </button>
+        )}
+        <Link
+          href="/schedule"
+          onClick={onClose}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
+          <CalendarDays className="h-4 w-4" />
+          Class Schedule
+        </Link>
+        <Link
+          href="/dashboard"
+          onClick={onClose}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          Dashboard
+        </Link>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 pb-4">
@@ -105,7 +133,7 @@ export function Sidebar({
 
       <div className="border-t border-slate-200 p-4 dark:border-slate-700">
         <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-          (c) Atomic Pathshala 2025
+          (c) Atomic Pathshala 2026
         </p>
       </div>
     </aside>

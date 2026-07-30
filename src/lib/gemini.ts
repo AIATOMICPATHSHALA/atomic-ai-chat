@@ -348,3 +348,52 @@ export async function* generateChatResponseStream(
 
   throw mapGeminiError(lastError);
 }
+
+const QUIZ_SYSTEM_INSTRUCTION = `You are a NEET question generator for Atomic Pathshala. You output ONLY valid JSON matching the exact schema requested by the user message. No markdown, no headings, no code fences, no commentary before or after the JSON. Follow the latest NCERT and NTA NEET syllabus. Never invent fake facts. Never fabricate PYQs; generate original NEET-standard practice questions instead.`;
+
+export async function generateQuizQuestions(promptText: string): Promise<string> {
+  const apiKeys = getApiKeys();
+  let lastError: unknown;
+
+  for (const modelName of MODEL_FALLBACKS) {
+    const availableKeys = availableKeysForModel(modelName, apiKeys);
+
+    for (let i = 0; i < availableKeys.length; i++) {
+      const apiKey = availableKeys[i];
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: QUIZ_SYSTEM_INSTRUCTION,
+          generationConfig: {
+            maxOutputTokens: 8192,
+            temperature: 0.4,
+            topP: 0.95,
+            responseMimeType: "application/json",
+          },
+        });
+
+        const result = await model.generateContent(promptText);
+        const text = result.response.text();
+        assertNonEmptyResponse(text, result.response.promptFeedback?.blockReason);
+
+        return text.trim();
+      } catch (error) {
+        lastError = error;
+
+        if (!isRetryableGeminiError(error)) {
+          throw mapGeminiError(error);
+        }
+
+        markRetryableFailure(modelName, apiKey, error);
+
+        const isLastKeyForModel = i === availableKeys.length - 1;
+        if (!isLastKeyForModel) {
+          await sleep(RETRY_BASE_DELAY_MS);
+        }
+      }
+    }
+  }
+
+  throw mapGeminiError(lastError);
+}

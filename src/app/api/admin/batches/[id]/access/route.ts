@@ -38,6 +38,9 @@ export async function POST(
       where: { id: batchId },
       include: {
         enrollments: {
+          where: { status: "ACTIVE" },
+        },
+        memberships: {
           where: {
             status: "ACTIVE",
             ...(parsed.data.userIds?.length ? { userId: { in: parsed.data.userIds } } : {}),
@@ -50,21 +53,26 @@ export async function POST(
     const expiresAt = parsed.data.expiresAt
       ? new Date(parsed.data.expiresAt)
       : batch.endsAt;
-    await inChunks(batch.enrollments, 25, async (enrollment) => {
+    const enrollmentByUserId = new Map(batch.enrollments.map((enrollment) => [enrollment.userId, enrollment]));
+    const members = batch.memberships.map((membership) => ({
+      userId: membership.userId,
+      enrollmentId: membership.enrollmentId ?? enrollmentByUserId.get(membership.userId)?.id ?? null,
+    }));
+    await inChunks(members, 25, async (member) => {
       await grantAccess(prisma, {
-        userId: enrollment.userId,
+        userId: member.userId,
         grantedByUserId: admin.id,
         plan: "PRO",
         accessType: "ATOMIC_BATCH_FREE",
         expiresAt,
         batchId: batch.id,
         courseId: batch.courseId,
-        enrollmentId: enrollment.id,
+        enrollmentId: member.enrollmentId,
         reason: parsed.data.reason ?? `Complimentary Atomic AI access from ${batch.title}`,
       });
     });
 
-    return NextResponse.json({ granted: batch.enrollments.length, batchId: batch.id });
+    return NextResponse.json({ granted: members.length, batchId: batch.id });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Sign in is required." }, { status: 401 });

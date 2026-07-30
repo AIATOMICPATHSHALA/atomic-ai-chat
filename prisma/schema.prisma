@@ -7,6 +7,15 @@ datasource db {
   provider = "postgresql"
 }
 
+enum AtomicBatch {
+  SELECTION_PRO
+  SELECTION_1_0
+  ARAMBH
+  MANZIL
+  UDAAN
+  NO_BATCH
+}
+
 enum UserRole {
   GUEST
   STUDENT
@@ -89,6 +98,10 @@ model User {
   isPro                Boolean              @default(false)
   isSuspended          Boolean              @default(false)
   lastLoginAt          DateTime?
+  currentStreak        Int                  @default(0)
+  longestStreak        Int                  @default(0)
+  lastActivityDate     DateTime?
+  totalXp              Int                  @default(0)
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   profile              UserProfile?
@@ -106,6 +119,7 @@ model User {
   batchMemberships     BatchMembership[]
   testAttempts         TestAttempt[]
   usageEvents          UsageEvent[]
+  quizAttempts         QuizAttempt[]
   auditLogs            AuditLog[]           @relation("AuditActor")
   targetAuditLogs      AuditLog[]           @relation("AuditTarget")
 
@@ -117,6 +131,7 @@ model UserProfile {
   userId              String   @unique
   phone               String?
   className           String?
+  atomicBatch AtomicBatch @default(NO_BATCH)
   target              String   @default("NEET")
   board               String?
   preferredLanguage   String   @default("hinglish")
@@ -124,6 +139,10 @@ model UserProfile {
   strongChapters      String[] @default([])
   weakChapters        String[] @default([])
   favoriteSubject     String?
+  xp                  Int      @default(0)
+  currentStreak       Int      @default(0)
+  longestStreak       Int      @default(0)
+  lastActiveDate      DateTime?
   learningPreferences Json?
   recentActivity      Json?
   createdAt           DateTime @default(now())
@@ -411,6 +430,7 @@ model TestAttempt {
   userId      String
   courseId    String?
   testName    String
+  subject     String?
   score       Float?
   maxScore    Float?
   answers     Json?
@@ -447,4 +467,52 @@ model AuditLog {
 
   @@index([event, createdAt])
   @@index([targetUserId, createdAt])
+}
+
+model GuestUsage {
+  id          String   @id @default(cuid())
+  guestId     String   @unique
+  ip          String
+  count       Int      @default(0)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @updatedAt
+
+  @@index([ip])
+}
+
+model ClassSchedule {
+  id          String      @id @default(cuid())
+  batch       AtomicBatch
+  classDate   DateTime
+  startTime   String
+  endTime     String?
+  subject     String
+  teacherName String?
+  topic       String
+  youtubeLink String?
+  notes       String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([batch, classDate])
+}
+
+model QuizAttempt {
+  id             String   @id @default(cuid())
+  userId         String
+  subject        String
+  topic          String?
+  totalQuestions Int
+  correct        Int
+  wrong          Int
+  unattempted    Int
+  score          Int
+  accuracy       Int
+  timeTakenSec   Int?
+  breakdown      Json?
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, subject])
 }

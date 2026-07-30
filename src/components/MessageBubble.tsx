@@ -26,6 +26,7 @@ import {
 import type { ChatAttachment, ChatMessage } from "@/types/chat";
 
 import "katex/dist/katex.min.css";
+import DOMPurify from "dompurify";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -33,6 +34,18 @@ interface MessageBubbleProps {
   onEdit?: (messageId: string, content: string) => void;
   onRegenerate?: (messageId: string) => void;
   onRetry?: (messageId: string) => void;
+}
+
+function sanitizeSvg(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("<svg") || typeof window === "undefined") return null;
+
+  const clean = DOMPurify.sanitize(trimmed, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_TAGS: ["svg"],
+  });
+
+  return clean.includes("<svg") ? clean : null;
 }
 
 function formatTimestamp(timestamp: number) {
@@ -254,6 +267,20 @@ function MessageBubbleComponent({
                     </td>
                   ),
                   code({ children, className }) {
+                    if (className === "language-svg") {
+                      const raw = String(children);
+                      const clean = sanitizeSvg(raw);
+
+                      if (clean) {
+                        return (
+                          <span
+                            className="my-3 block overflow-hidden rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-white [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+                            dangerouslySetInnerHTML={{ __html: clean }}
+                          />
+                        );
+                      }
+                    }
+
                     return className ? (
                       <code className={className}>{children}</code>
                     ) : (

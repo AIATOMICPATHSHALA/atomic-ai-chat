@@ -34,6 +34,7 @@ export function SettingsScreen() {
   const [name, setName] = useState("");
   const [className, setClassName] = useState("");
   const [target, setTarget] = useState("NEET");
+  const [atomicBatch, setAtomicBatch] = useState("NO_BATCH");
   const [board, setBoard] = useState("");
   const [language, setLanguage] = useState<Language>("hinglish");
   const [phone, setPhone] = useState("");
@@ -53,6 +54,7 @@ export function SettingsScreen() {
         setName(next.studentProfile.name ?? "");
         setClassName(next.studentProfile.className ?? "");
         setTarget(next.studentProfile.target ?? "NEET");
+        setAtomicBatch(next.studentProfile.atomicBatch ?? "NO_BATCH");
         setBoard(next.studentProfile.board ?? "");
         setLanguage(next.studentProfile.language ?? "hinglish");
         setPhone(next.profile?.phone ?? "");
@@ -73,6 +75,7 @@ export function SettingsScreen() {
           name,
           className: className || null,
           target,
+          atomicBatch,
           board: board || null,
           preferredLanguage: language,
           language,
@@ -95,9 +98,9 @@ export function SettingsScreen() {
       <main className="mx-auto flex min-h-dvh max-w-2xl items-center px-4">
         <div>
           <h1 className="text-2xl font-bold">Account settings</h1>
-          <p className="mt-2 text-slate-500">Sign in to manage your Atomic AI profile and plan.</p>
+          <p className="mt-2 text-slate-500">Sign in to manage your Atomic Guru profile and plan.</p>
           <Link href="/" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-atomic-orange">
-            <ArrowLeft className="h-4 w-4" /> Return to Atomic AI
+            <ArrowLeft className="h-4 w-4" /> Return to Atomic Guru
           </Link>
         </div>
       </main>
@@ -111,7 +114,7 @@ export function SettingsScreen() {
           <h1 className="text-2xl font-bold">Account settings</h1>
           <p className="mt-2 text-slate-500">Cloud account settings become available after signing in with an Atomic account.</p>
           <Link href="/" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-atomic-orange">
-            <ArrowLeft className="h-4 w-4" /> Return to Atomic AI
+            <ArrowLeft className="h-4 w-4" /> Return to Atomic Guru
           </Link>
         </div>
       </main>
@@ -124,7 +127,7 @@ export function SettingsScreen() {
       <div className="mx-auto max-w-4xl px-4 py-7 sm:px-6">
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-5 dark:border-slate-700">
           <div>
-            <p className="text-sm font-medium text-atomic-orange">Atomic AI</p>
+            <p className="text-sm font-medium text-atomic-orange">Atomic Guru</p>
             <h1 className="text-2xl font-bold">Settings</h1>
           </div>
           <Link href="/" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Return to chat" aria-label="Return to chat">
@@ -142,7 +145,7 @@ export function SettingsScreen() {
             <div><p className="text-xs text-slate-500">Access type</p><p className="mt-1 font-semibold">{access ? readable(access.accessType) : "Basic plan"}</p></div>
             <div><p className="text-xs text-slate-500">Subscription status</p><p className="mt-1 font-semibold">{access ? readable(access.status) : "Active"}</p></div>
             <div><p className="text-xs text-slate-500">Expiry date</p><p className="mt-1 font-semibold">{access?.expiresAt ? new Date(access.expiresAt).toLocaleDateString("en-IN") : "No expiry"}</p></div>
-            <div><p className="text-xs text-slate-500">Batch</p><p className="mt-1 font-semibold">{access?.batch?.title ?? "Not linked"}</p></div>
+            <div><p className="text-xs text-slate-500">Atomic Pathshala batch</p><p className="mt-1 font-semibold">{readable(atomicBatch)}</p></div>
             <div><p className="text-xs text-slate-500">Atomic ID</p><p className="mt-1 font-semibold">{data?.user.atomicId ?? "Loading..."}</p></div>
           </div>
         </section>
@@ -152,9 +155,10 @@ export function SettingsScreen() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm"><span className="mb-1 block text-slate-500">Name</span><input value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900" /></label>
             <label className="text-sm"><span className="mb-1 block text-slate-500">Phone</span><input value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900" /></label>
-            <label className="text-sm"><span className="mb-1 block text-slate-500">Class</span><input value={className} onChange={(event) => setClassName(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900" /></label>
+            <label className="text-sm"><span className="mb-1 block text-slate-500">Class</span><select value={className} onChange={(event) => setClassName(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900"><option value="">Select class</option><option value="11th">11th</option><option value="12th">12th</option><option value="Dropper">Dropper</option></select></label>
             <label className="text-sm"><span className="mb-1 block text-slate-500">Board</span><input value={board} onChange={(event) => setBoard(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900" /></label>
             <label className="text-sm"><span className="mb-1 block text-slate-500">Target</span><select value={target} onChange={(event) => setTarget(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900"><option>NEET</option><option>JEE</option><option>Board</option><option>Other</option></select></label>
+            <label className="text-sm"><span className="mb-1 block text-slate-500">Atomic Pathshala batch</span><select value={atomicBatch} onChange={(event) => setAtomicBatch(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900"><option value="SELECTION_PRO">Selection Pro Batch</option><option value="SELECTION_1_0">Selection 1.0 Batch</option><option value="ARAMBH">Arambh Batch</option><option value="MANZIL">Manzil Batch</option><option value="UDAAN">Udaan Batch (Class 10th)</option><option value="NO_BATCH">No Batch</option></select></label>
             <label className="text-sm"><span className="mb-1 block text-slate-500">Language</span><select value={language} onChange={(event) => setLanguage(event.target.value as Language)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900"><option value="hinglish">Hinglish</option><option value="english">English</option><option value="hindi">Hindi</option></select></label>
           </div>
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
@@ -166,9 +170,12 @@ export function SettingsScreen() {
           <div className="mb-3 flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-atomic-orange" /><h2 className="font-semibold">Account</h2></div>
           <p className="text-sm text-slate-500">{data?.user.email}</p>
           <p className="mt-1 text-sm text-slate-500">Role: {data?.user.role ?? "Loading..."}</p>
+          <Link href="/dashboard" className="mb-3 flex items-center gap-2 text-sm font-semibold text-atomic-orange"><CreditCard className="h-4 w-4" /> View full progress dashboard</Link>
           {data?.user.role === "ADMIN" && <Link href="/admin" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-atomic-orange"><SlidersHorizontal className="h-4 w-4" /> Open admin dashboard</Link>}
+          {(data?.user.role === "ADMIN" || data?.user.role === "FACULTY") && <Link href="/schedule" className="mt-3 flex items-center gap-2 text-sm font-semibold text-atomic-orange"><SlidersHorizontal className="h-4 w-4" /> Manage class schedule</Link>}
         </section>
       </div>
     </main>
   );
 }
+

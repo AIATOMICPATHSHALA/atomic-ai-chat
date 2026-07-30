@@ -42,6 +42,7 @@ export interface StudentProfile {
   target?: "NEET" | "JEE" | "Board" | "Other";
   board?: string;
   language?: Language;
+  atomicBatch?: "SELECTION_PRO" | "SELECTION_1_0" | "ARAMBH" | "MANZIL" | "UDAAN" | "NO_BATCH";
 }
 
 export interface ChatRequestAttachment {

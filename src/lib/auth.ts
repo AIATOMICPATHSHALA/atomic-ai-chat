@@ -19,3 +19,8 @@ export async function requireAdmin() {
   if (user.role !== "ADMIN") throw new Error("FORBIDDEN");
   return user;
 }
+export async function requireScheduleManager() {
+  const user = await requireCurrentUser();
+  if (user.role !== "ADMIN" && user.role !== "FACULTY") throw new Error("FORBIDDEN");
+  return user;
+}

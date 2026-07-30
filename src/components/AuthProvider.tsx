@@ -130,11 +130,13 @@ function createAuthUserFromSession(user: {
   id: string;
   email?: string | null;
   name?: string | null;
+  role?: string | null;
 }): AuthUser {
   return {
     id: user.id,
     email: user.email ?? "",
     name: user.name ?? undefined,
+    role: user.role ?? undefined,
   };
 }
 
@@ -319,7 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signUp = useCallback(
-    async ({ email, password, name, className, target, language }: SignUpInput) => {
+  async ({ email, password, name, phone, className, target, language, atomicBatch }: SignUpInput) => {
       const cleanEmail = normalizeEmail(email);
       const cleanName = name.trim();
 
@@ -349,9 +351,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: cleanEmail,
             password,
             name: cleanName,
+            phone,
             className: nextProfile.className,
             target,
             language,
+            atomicBatch,
           }),
         });
         const data = (await response.json()) as { error?: string };
@@ -489,3 +493,4 @@ export function useAuth() {
 
   return context;
 }
+

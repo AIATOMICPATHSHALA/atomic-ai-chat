@@ -7,6 +7,7 @@ import {
   updateSubscriptionExpiry,
 } from "@/lib/access-service";
 import { getPrisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 const planSchema = z.enum(["FREE", "BASIC", "PRO", "LIFETIME"]);
 const accessTypeSchema = z.enum([
@@ -49,30 +50,34 @@ export async function GET(request: Request) {
     const batchId = params.get("batchId")?.trim();
     const status = params.get("status")?.trim();
     const prisma = getPrisma();
+    const filters: Prisma.UserWhereInput[] = [];
+
+    if (search) {
+      filters.push({
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+          { atomicId: { contains: search, mode: "insensitive" } },
+          { profile: { phone: { contains: search, mode: "insensitive" } } },
+          { enrollments: { some: { batch: { title: { contains: search, mode: "insensitive" } } } } },
+          { batchMemberships: { some: { batch: { title: { contains: search, mode: "insensitive" } } } } },
+        ],
+      });
+    }
+    if (batchId) {
+      filters.push({
+        OR: [
+          { enrollments: { some: { batchId } } },
+          { batchMemberships: { some: { batchId } } },
+        ],
+      });
+    }
+    if (status === "ACTIVE" || status === "EXPIRED" || status === "SUSPENDED" || status === "REVOKED") {
+      filters.push({ access: { status } });
+    }
+
     const users = await prisma.user.findMany({
-      where: {
-        ...(search
-          ? {
-              OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
-                { atomicId: { contains: search, mode: "insensitive" } },
-                { profile: { phone: { contains: search, mode: "insensitive" } } },
-                {
-                  enrollments: {
-                    some: {
-                      batch: { title: { contains: search, mode: "insensitive" } },
-                    },
-                  },
-                },
-              ],
-            }
-          : {}),
-        ...(batchId ? { enrollments: { some: { batchId } } } : {}),
-        ...(status === "ACTIVE" || status === "EXPIRED" || status === "SUSPENDED" || status === "REVOKED"
-          ? { access: { status } }
-          : {}),
-      },
+      where: filters.length ? { AND: filters } : undefined,
       orderBy: { createdAt: "desc" },
       take: 200,
       include: {
@@ -97,6 +102,10 @@ export async function GET(request: Request) {
             batch: { select: { id: true, title: true } },
             course: { select: { id: true, title: true } },
           },
+        },
+        batchMemberships: {
+          where: { status: "ACTIVE" },
+          include: { batch: { select: { id: true, title: true } } },
         },
         subscriptions: {
           orderBy: [{ grantedAt: "desc" }, { createdAt: "desc" }],

@@ -5,7 +5,7 @@ import type { StudentProfile } from "@/types/chat";
 
 const ATOMIC_SEQUENCE_ID = "atomic-pathshala";
 const PASSWORD_HASH_ROUNDS = 12;
-
+const validBatches = ["SELECTION_PRO", "SELECTION_1_0", "ARAMBH", "MANZIL", "UDAAN", "NO_BATCH"];
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }

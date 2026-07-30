@@ -3,11 +3,16 @@
 import {
   ArrowLeft,
   BookOpenCheck,
+  Check,
+  Eye,
+  EyeOff,
   GraduationCap,
   KeyRound,
   Lock,
   Mail,
+  Phone,
   User,
+  X,
 } from "lucide-react";
 import { getProviders } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -45,17 +50,30 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [name, setName] = useState("");
   const [className, setClassName] = useState("");
+  const [phone, setPhone] = useState("");
   const [target, setTarget] =
     useState<NonNullable<StudentProfile["target"]>>("NEET");
   const [language, setLanguage] = useState<Language>("hinglish");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
+  const [atomicBatch, setAtomicBatch] =
+    useState<NonNullable<StudentProfile["atomicBatch"]>>("NO_BATCH");
+const BATCHES: { value: NonNullable<StudentProfile["atomicBatch"]>; label: string }[] = [
+  { value: "SELECTION_PRO", label: "Selection Pro Batch" },
+  { value: "SELECTION_1_0", label: "Selection 1.0 Batch" },
+  { value: "ARAMBH", label: "Arambh Batch" },
+  { value: "MANZIL", label: "Manzil Batch" },
+  { value: "UDAAN", label: "Udaan Batch (Class 10th)" },
+  { value: "NO_BATCH", label: "No Batch" },
+];
   useEffect(() => {
     const rememberedEmail = localStorage.getItem("atomic-pathshala-remembered-email");
     if (rememberedEmail) {
@@ -65,6 +83,21 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
 
     void getProviders().then((providers) => setGoogleEnabled(Boolean(providers?.google)));
   }, []);
+
+const passwordChecklist = [
+    { label: "8+ characters", passed: password.length >= 8 },
+    { label: "Uppercase letter", passed: /[A-Z]/.test(password) },
+    { label: "Lowercase letter", passed: /[a-z]/.test(password) },
+    { label: "Number", passed: /[0-9]/.test(password) },
+    { label: "Special character", passed: /[^A-Za-z0-9]/.test(password) },
+  ];
+  const strengthScore = passwordChecklist.filter((item) => item.passed).length;
+  const strengthLabel =
+    strengthScore <= 2 ? "Weak" : strengthScore <= 4 ? "Medium" : "Strong";
+  const strengthBarColor =
+    strengthScore <= 2 ? "bg-red-500" : strengthScore <= 4 ? "bg-amber-500" : "bg-emerald-500";
+  const strengthTextColor =
+    strengthScore <= 2 ? "text-red-500" : strengthScore <= 4 ? "text-amber-500" : "text-emerald-500";
 
   const changeMode = (nextMode: AuthMode) => {
     setMode(nextMode);
@@ -76,6 +109,18 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
     event.preventDefault();
     setError(null);
     setMessage(null);
+
+    if (mode === "signup") {
+      if (password !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      if (strengthScore < 5) {
+        setError("Password must meet all the requirements below.");
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -84,15 +129,16 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
           ? await requestPasswordReset(email)
           : mode === "signin"
             ? await signIn({ email, password, remember })
-            : await signUp({
+            :await signUp({
                 email,
                 password,
                 name,
+                phone,
                 className,
                 target,
                 language,
+                atomicBatch,
               });
-
       if (result.message) setMessage(result.message);
     } catch (caughtError) {
       setError(
@@ -195,6 +241,26 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
                   </span>
                 </label>
 
+<label className="block">
+                  <span className="mb-1 block text-xs font-medium text-slate-500">
+                    Mobile number
+                  </span>
+                  <span className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800">
+                    <Phone className="h-4 w-4 text-slate-400" />
+                    <input
+                      value={phone}
+                      onChange={(event) =>
+                        setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))
+                      }
+                      className="w-full bg-transparent text-sm outline-none"
+                      placeholder="10-digit mobile number"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                    />
+                  </span>
+                </label>
+
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-slate-500">
@@ -202,12 +268,16 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
                     </span>
                     <span className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800">
                       <GraduationCap className="h-4 w-4 text-slate-400" />
-                      <input
+                      <select
                         value={className}
                         onChange={(event) => setClassName(event.target.value)}
                         className="w-full bg-transparent text-sm outline-none"
-                        placeholder="11 / 12"
-                      />
+                      >
+                        <option value="">Select class</option>
+                        <option value="11th">11th</option>
+                        <option value="12th">12th</option>
+                        <option value="Dropper">Dropper</option>
+                      </select>
                     </span>
                   </label>
 
@@ -246,6 +316,27 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-800"
                   >
                     {LANGUAGES.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-slate-500">
+                    Atomic Pathshala batch
+                  </span>
+                  <select
+                    value={atomicBatch}
+                    onChange={(event) =>
+                      setAtomicBatch(
+                        event.target.value as NonNullable<StudentProfile["atomicBatch"]>
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-800"
+                  >
+                    {BATCHES.map((item) => (
                       <option key={item.value} value={item.value}>
                         {item.label}
                       </option>
@@ -291,10 +382,104 @@ export function AuthScreen({ onContinueAsGuest }: AuthScreenProps) {
                     onChange={(event) => setPassword(event.target.value)}
                     className="w-full bg-transparent text-sm outline-none"
                     placeholder="At least 8 characters"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="shrink-0 text-slate-400 transition-colors hover:text-atomic-orange"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </span>
+              </label>
+            )}
+
+            {mode === "signup" && password.length > 0 && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                <div className="mb-2 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Password strength</span>
+                  <span className={`font-semibold ${strengthTextColor}`}>{strengthLabel}</span>
+                </div>
+                <div className="mb-3 flex gap-1">
+                  {[0, 1, 2, 3, 4].map((index) => (
+                    <span
+                      key={index}
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${
+                        index < strengthScore ? strengthBarColor : "bg-slate-200 dark:bg-slate-700"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <ul className="space-y-1">
+                  {passwordChecklist.map((item) => (
+                    <li
+                      key={item.label}
+                      className={`flex items-center gap-1.5 text-xs transition-colors ${
+                        item.passed
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-slate-400"
+                      }`}
+                    >
+                      {item.passed ? (
+                        <Check className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      {item.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {mode === "signup" && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-slate-500">
+                  Confirm password
+                </span>
+                <span
+                  className={`flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2.5 dark:bg-slate-800 ${
+                    confirmPassword.length > 0
+                      ? confirmPassword === password
+                        ? "border-emerald-400 dark:border-emerald-700"
+                        : "border-red-400 dark:border-red-700"
+                      : "border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  <Lock className="h-4 w-4 text-slate-400" />
+                  <input
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="w-full bg-transparent text-sm outline-none"
+                    placeholder="Re-enter your password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((current) => !current)}
+                    className="shrink-0 text-slate-400 transition-colors hover:text-atomic-orange"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </span>
+                {confirmPassword.length > 0 && confirmPassword !== password && (
+                  <p className="mt-1 text-xs text-red-500">Passwords do not match.</p>
+                )}
               </label>
             )}
 

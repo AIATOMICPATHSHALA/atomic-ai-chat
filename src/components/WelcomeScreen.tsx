@@ -45,10 +45,10 @@ export function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
       </div>
 
       <h1 className="mb-2 text-center text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
-        Atomic Pathshala
+        Atomic Guru
       </h1>
       <p className="mb-1 text-center font-medium text-atomic-orange">
-        AI Doubt Solver
+        by Atomic Pathshala
       </p>
       <p className="mb-8 max-w-md text-center text-sm text-slate-500 dark:text-slate-400">
         Ask any academic doubt in English, Hindi, or Hinglish. Paste screenshots,
@@ -72,3 +72,4 @@ export function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
     </div>
   );
 }
+

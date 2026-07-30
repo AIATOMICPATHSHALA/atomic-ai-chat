@@ -21,10 +21,10 @@ export function Logo({ compact = false }: LogoProps) {
       {!compact && (
         <div className="min-w-0">
           <p className="truncate text-sm font-bold leading-tight text-slate-900 dark:text-white">
-            Atomic Pathshala
+            Atomic Guru
           </p>
           <p className="truncate text-xs text-orange-500">
-            AI Doubt Solver
+            by Atomic Pathshala
           </p>
         </div>
       )}

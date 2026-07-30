@@ -107,10 +107,12 @@ export function ResetPasswordScreen() {
             href="/"
             className="block rounded-xl px-4 py-2 text-center text-sm font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
-            Return to Atomic AI
+            Return to Atomic Guru
           </Link>
         </form>
       </div>
     </main>
   );
 }
+
+

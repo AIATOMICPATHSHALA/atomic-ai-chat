@@ -11,6 +11,7 @@ import {
 import { DatabaseUnavailableError, getPrisma } from "@/lib/prisma";
 import { ensureBasicAccess } from "@/lib/access-service";
 import { ensureInitialAdmin } from "@/lib/system-bootstrap";
+import { syncStudentToSheet } from "@/lib/googleSheets";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,8 @@ export async function POST(request: Request) {
             className: parsed.data.className || null,
             target: parsed.data.target,
             preferredLanguage: parsed.data.language,
+            atomicBatch: parsed.data.atomicBatch,
+            phone: parsed.data.phone,
           },
         },
         preferences: { create: { language: parsed.data.language } },
@@ -65,6 +68,18 @@ export async function POST(request: Request) {
       },
     });
     await ensureBasicAccess(prisma, user.id);
+
+    // fire-and-forget, sync errors already caught inside the function
+    syncStudentToSheet({
+      atomicId: user.atomicId,
+      name: user.name,
+      email: user.email,
+      phone: parsed.data.phone,
+      atomicBatch: parsed.data.atomicBatch,
+      role: user.role,
+      plan: "FREE",
+      accessStatus: "ACTIVE",
+    });
 
     return NextResponse.json({ user: publicUser(user) }, { status: 201 });
   } catch (error) {

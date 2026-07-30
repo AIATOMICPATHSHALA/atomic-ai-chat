@@ -6,6 +6,7 @@ import {
   ImagePlus,
   Mic,
   MicOff,
+  Plus,
   Send,
   Square,
   X,
@@ -117,8 +118,11 @@ function validateFile(file: File): string | null {
 }
 
 function getSpeechLanguageCode(language?: Language) {
-  if (language === "hindi") return "hi-IN";
-  return "en-IN";
+  // hi-IN handles common English loanwords reasonably well and is far more
+  // accurate for Hindi/Hinglish speech than forcing en-IN, which mishears
+  // Hindi words entirely.
+  if (language === "english") return "en-IN";
+  return "hi-IN";
 }
 
 async function requestMicrophoneAccess() {
@@ -248,6 +252,8 @@ export function ChatInput({
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
   const [inputError, setInputError] = useState<string | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -256,6 +262,7 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentsRef = useRef<PendingAttachment[]>([]);
   const voiceBaseTextRef = useRef("");
+  const transcriptSeenRef = useRef(false);
 
   const {
     transcript,
@@ -272,6 +279,7 @@ export function ChatInput({
 
   useEffect(() => {
     if (!listening) return;
+    if (transcript) transcriptSeenRef.current = true;
 
     setText(`${voiceBaseTextRef.current}${transcript}`.trimStart());
   }, [listening, transcript]);
@@ -294,6 +302,17 @@ export function ChatInput({
     },
     []
   );
+
+useEffect(() => {
+    if (!showAttachMenu) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(event.target as Node)) {
+        setShowAttachMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAttachMenu]);
 
   const removeAttachment = useCallback((id: string) => {
     setAttachments((current) => {
@@ -514,10 +533,29 @@ export function ChatInput({
       await requestMicrophoneAccess();
       voiceBaseTextRef.current = text.trim() ? `${text.trim()} ` : "";
       resetTranscript();
+      transcriptSeenRef.current = false;
+
+      const primaryLanguage = getSpeechLanguageCode(language);
+
       await SpeechRecognition.startListening({
         continuous: browserSupportsContinuousListening !== false,
-        language: getSpeechLanguageCode(language),
+        language: primaryLanguage,
       });
+
+      // If the chosen locale produces no speech-recognition activity within 3s
+      // (common with hi-IN on some Windows/Chrome setups), fall back to en-IN.
+      if (primaryLanguage !== "en-IN") {
+        window.setTimeout(() => {
+          if (!transcriptSeenRef.current) {
+            SpeechRecognition.stopListening();
+            resetTranscript();
+            void SpeechRecognition.startListening({
+              continuous: browserSupportsContinuousListening !== false,
+              language: "en-IN",
+            });
+          }
+        }, 3000);
+      }
     } catch (error) {
       setInputError(
         error instanceof Error
@@ -641,39 +679,57 @@ export function ChatInput({
           onChange={(event) => addFiles(event.target.files ?? [])}
         />
 
-        <div className="flex shrink-0 gap-1">
-          <button
-            type="button"
-            onClick={() => imageInputRef.current?.click()}
-            disabled={disabled}
-            className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange disabled:opacity-50 dark:hover:bg-slate-800"
-            title="Upload images"
-            aria-label="Upload images"
-          >
-            <ImagePlus className="h-5 w-5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => pdfInputRef.current?.click()}
-            disabled={disabled}
-            className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-500 disabled:opacity-50 dark:hover:bg-slate-800"
-            title="Upload PDF"
-            aria-label="Upload PDF"
-          >
-            <FileText className="h-5 w-5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => cameraInputRef.current?.click()}
-            disabled={disabled}
-            className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange disabled:opacity-50 dark:hover:bg-slate-800 sm:hidden"
-            title="Take photo"
-            aria-label="Take photo with camera"
-          >
-            <Camera className="h-5 w-5" />
-          </button>
+        <div className="flex shrink-0 items-end gap-1">
+          {/* "+" button with popup menu (all screen sizes) */}
+          <div ref={attachMenuRef} className="relative">
+            {showAttachMenu && (
+              <div className="absolute bottom-full left-0 mb-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    cameraInputRef.current?.click();
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  <Camera className="h-4 w-4" />
+                  Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    imageInputRef.current?.click();
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  Photos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false);
+                    pdfInputRef.current?.click();
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  <FileText className="h-4 w-4" />
+                  Files
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowAttachMenu((current) => !current)}
+              disabled={disabled}
+              className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-atomic-orange disabled:opacity-50 dark:hover:bg-slate-800"
+              title="Add attachment"
+              aria-label="Add attachment"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
 
           <button
             type="button"
