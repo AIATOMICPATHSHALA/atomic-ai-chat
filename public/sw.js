@@ -19,7 +19,6 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-
   // Never cache API calls - always go to network
   if (event.request.url.includes("/api/")) return;
 
@@ -30,6 +29,14 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+
+        return new Response("Network error - resource not available offline", {
+          status: 408,
+          headers: { "Content-Type": "text/plain" },
+        });
+      })
   );
 });
