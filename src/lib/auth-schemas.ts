@@ -65,6 +65,7 @@ export const classScheduleSchema = z.object({
   endTime: z.string().optional(),
   subject: z.string().trim().min(1, "Subject is required.").max(60),
   teacherName: z.string().trim().max(80).optional(),
+  teacherPhotoUrl: z.string().trim().url("Enter a valid image URL.").optional().or(z.literal("")),
   topic: z.string().trim().min(1, "Topic is required.").max(200),
   youtubeLink: z.string().trim().url("Enter a valid URL.").optional().or(z.literal("")),
   notes: z.string().trim().max(500).optional(),

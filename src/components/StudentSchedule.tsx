@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, Search, Youtube } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, PlayCircle, Radio, Search, Youtube } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const BATCHES = [
   { value: "", label: "All batches" },
@@ -13,6 +13,8 @@ const BATCHES = [
   { value: "UDAAN", label: "Udaan Batch (Class 10th)" },
 ];
 
+const SUBJECT_PILLS = ["All", "Physics", "Chemistry", "Biology"];
+
 interface ScheduleEntry {
   id: string;
   batch: string;
@@ -21,17 +23,88 @@ interface ScheduleEntry {
   endTime: string | null;
   subject: string;
   teacherName: string | null;
+  teacherPhotoUrl: string | null;
   topic: string;
   youtubeLink: string | null;
   notes: string | null;
+}
+
+type ClassStatus = "live" | "upcoming" | "completed";
+
+function formatTime12h(time: string) {
+  const match = /^(\d{1,2}):(\d{2})/.exec(time.trim());
+  if (!match) return time;
+  let hours = Number(match[1]);
+  const minutes = match[2];
+  const suffix = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${minutes} ${suffix}`;
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return (parts[0]?.[0] ?? "?").toUpperCase();
+}
+
+function buildDateTime(classDate: string, time: string) {
+  const match = /^(\d{1,2}):(\d{2})/.exec(time.trim());
+  const base = new Date(classDate);
+  if (!match) return base;
+  base.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return base;
+}
+
+function getStatus(entry: ScheduleEntry, now: Date): ClassStatus {
+  const start = buildDateTime(entry.classDate, entry.startTime);
+  const end = entry.endTime
+    ? buildDateTime(entry.classDate, entry.endTime)
+    : new Date(start.getTime() + 2 * 60 * 60 * 1000); // default 2hr class length
+  if (now < start) return "upcoming";
+  if (now >= start && now <= end) return "live";
+  return "completed";
+}
+
+function timeUntil(entry: ScheduleEntry, now: Date) {
+  const start = buildDateTime(entry.classDate, entry.startTime);
+  const diffMs = start.getTime() - now.getTime();
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours <= 0 && minutes <= 0) return "Starting soon";
+  if (hours > 0) return `Starts in ${hours}h${minutes > 0 ? ` ${minutes}m` : ""}`;
+  return `Starts in ${minutes}m`;
+}
+
+function getWeekDates(centerDate: Date) {
+  const day = centerDate.getDay(); // 0 = Sunday
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(centerDate);
+  monday.setDate(centerDate.getDate() + mondayOffset);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function isSameDate(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 export function StudentSchedule() {
   const [schedules, setSchedules] = useState<ScheduleEntry[]>([]);
   const [filterBatch, setFilterBatch] = useState("");
   const [search, setSearch] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("All");
+  const [liveOnly, setLiveOnly] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
 
   const load = useCallback(async (batch: string, searchTerm: string) => {
     setLoading(true);
@@ -61,6 +134,35 @@ export function StudentSchedule() {
     return () => window.clearTimeout(timer);
   }, [filterBatch, search, load]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
+  const goToPrevWeek = () => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() - 7);
+    setSelectedDate(next);
+  };
+
+  const goToNextWeek = () => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 7);
+    setSelectedDate(next);
+  };
+  const monthLabel = selectedDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+  const visibleEntries = useMemo(() => {
+    return schedules
+      .filter((entry) => isSameDate(new Date(entry.classDate), selectedDate))
+      .filter((entry) =>
+        subjectFilter === "All" ? true : entry.subject.toLowerCase() === subjectFilter.toLowerCase()
+      )
+      .filter((entry) => (liveOnly ? getStatus(entry, now) === "live" : true))
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [schedules, selectedDate, subjectFilter, liveOnly, now]);
+
   return (
     <main className="min-h-dvh bg-white dark:bg-atomic-navy">
       <div className="mx-auto max-w-4xl px-4 py-7 sm:px-6">
@@ -81,7 +183,85 @@ export function StudentSchedule() {
           </Link>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        {/* Date strip */}
+        <div className="mt-5 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={goToPrevWeek}
+            aria-label="Previous week"
+            className="flex-shrink-0 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-atomic-orange dark:hover:bg-slate-800"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div className="flex flex-1 items-center justify-between gap-2 overflow-x-auto pb-1">
+          {weekDates.map((date) => {
+            const active = isSameDate(date, selectedDate);
+            const isToday = isSameDate(date, new Date());
+            return (
+              <button
+                key={date.toISOString()}
+                type="button"
+                onClick={() => setSelectedDate(date)}
+                className={`flex min-w-[52px] flex-col items-center rounded-2xl px-2 py-2 transition-colors ${
+                  active
+                    ? "bg-atomic-orange/10 text-atomic-orange ring-1 ring-atomic-orange/30"
+                    : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wide">
+                  {date.toLocaleDateString("en-GB", { weekday: "short" })}
+                </span>
+                <span className="mt-0.5 text-lg font-extrabold">{date.getDate()}</span>
+                {isToday && <span className="mt-0.5 text-[9px] font-bold uppercase">Today</span>}
+              </button>
+            );
+          })}
+          </div>
+          <button
+            type="button"
+            onClick={goToNextWeek}
+            aria-label="Next week"
+            className="flex-shrink-0 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-atomic-orange dark:hover:bg-slate-800"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="mt-2 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
+          {monthLabel}
+        </p>
+
+        {/* Subject filter pills */}
+        <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+          {SUBJECT_PILLS.map((subject) => (
+            <button
+              key={subject}
+              type="button"
+              onClick={() => setSubjectFilter(subject)}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+                subjectFilter === subject
+                  ? "bg-atomic-orange text-white"
+                  : "border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              }`}
+            >
+              {subject}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setLiveOnly((v) => !v)}
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
+              liveOnly
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                : "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+            }`}
+          >
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+            Live
+          </button>
+        </div>
+
+        {/* Search + batch filter */}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -110,48 +290,116 @@ export function StudentSchedule() {
           </p>
         )}
 
-        <div className="mt-6 space-y-3">
+        {/* Schedule cards */}
+        <div className="mt-6 space-y-4">
           {loading ? (
             <p className="text-sm text-slate-500">Loading...</p>
-          ) : schedules.length === 0 ? (
-            <p className="text-sm text-slate-500">No upcoming classes found.</p>
+          ) : visibleEntries.length === 0 ? (
+            <p className="text-sm text-slate-500">No classes found for this day.</p>
           ) : (
-            schedules.map((entry) => {
+            visibleEntries.map((entry) => {
               const batchLabel = BATCHES.find((b) => b.value === entry.batch)?.label ?? entry.batch;
-              const dateLabel = new Date(entry.classDate).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "2-digit",
-              });
+              const status = getStatus(entry, now);
+              const barColor =
+                status === "live"
+                  ? "bg-emerald-500"
+                  : status === "upcoming"
+                    ? "bg-atomic-orange"
+                    : "bg-amber-500";
 
               return (
                 <div
                   key={entry.id}
-                  className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+                  className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/60 backdrop-blur-sm transition-transform hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/60"
                 >
-                  <p className="text-xs font-semibold text-atomic-orange">{batchLabel}</p>
-                  <p className="mt-1 font-semibold">
-                    {entry.subject} - {entry.topic}
-                  </p>
-                  {entry.teacherName && (
-                    <p className="mt-0.5 text-xs text-slate-500">Teacher: {entry.teacherName}</p>
-                  )}
-                  <p className="mt-1 text-sm text-slate-500">
-                    {dateLabel} - {entry.startTime}
-                    {entry.endTime ? " to " + entry.endTime : ""}
-                  </p>
-                  {entry.notes && <p className="mt-1 text-xs text-slate-400">{entry.notes}</p>}
-                  {entry.youtubeLink && (
-                    <a
-                      href={entry.youtubeLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:underline"
-                    >
-                      <Youtube className="h-3.5 w-3.5" />
-                      Watch link
-                    </a>
-                  )}
+                  <div className={`absolute bottom-0 left-0 top-0 w-1.5 ${barColor}`} />
+                  <div className="flex flex-col gap-4 p-5 pl-6 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-atomic-orange">
+                          {entry.subject}
+                        </span>
+                        <span className="text-xs text-slate-400">-</span>
+                        <span className="text-xs font-medium text-slate-500">
+                          {formatTime12h(entry.startTime)}
+                          {entry.endTime ? ` to ${formatTime12h(entry.endTime)}` : ""}
+                        </span>
+                        <span className="rounded bg-slate-200/60 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-700/60">
+                          {batchLabel}
+                        </span>
+                      </div>
+                      <h3 className="mt-1 truncate text-lg font-bold">{entry.topic}</h3>
+                      {entry.teacherName && (
+                        <div className="mt-2 flex items-center gap-2">
+                          {entry.teacherPhotoUrl ? (
+                            <img
+                              src={entry.teacherPhotoUrl}
+                              alt={entry.teacherName}
+                              className="h-6 w-6 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-atomic-orange/15 text-[11px] font-bold text-atomic-orange">
+                              {initials(entry.teacherName)}
+                            </span>
+                          )}
+                          <span className="text-sm font-medium text-slate-500">{entry.teacherName}</span>
+                        </div>
+                      )}
+                      {entry.notes && <p className="mt-1 text-xs text-slate-400">{entry.notes}</p>}
+                    </div>
+
+                    <div className="flex flex-col items-start gap-2 md:items-end">
+                      {status === "live" && (
+                        <span className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-tight text-emerald-600">
+                          <Radio className="h-3 w-3 animate-pulse" />
+                          Live now
+                        </span>
+                      )}
+                      {status === "upcoming" && (
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                          {timeUntil(entry, now)}
+                        </span>
+                      )}
+                      {status === "completed" && (
+                        <span className="text-xs font-bold uppercase tracking-widest text-amber-500">
+                          Completed
+                        </span>
+                      )}
+
+                      {status === "live" && entry.youtubeLink ? (
+                        <Link
+                          href={entry.youtubeLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-xl bg-emerald-500 px-6 py-2.5 text-sm font-bold text-white transition-transform active:scale-95 hover:bg-emerald-600"
+                        >
+                          Join Class
+                        </Link>
+                      ) : null}
+                      {status === "completed" && entry.youtubeLink ? (
+                        <Link
+                          href={entry.youtubeLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-bold text-amber-600 transition-transform active:scale-95 hover:bg-amber-500/20"
+                        >
+                          <PlayCircle className="h-4 w-4" />
+                          Watch Recording
+                        </Link>
+                      ) : null}
+                      {status === "upcoming" && entry.youtubeLink ? (
+                        <Link
+                          href={entry.youtubeLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 text-xs font-medium text-red-500 hover:underline"
+                        >
+                          <Youtube className="h-3.5 w-3.5" />
+                          Class link
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               );
             })

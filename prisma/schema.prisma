@@ -488,6 +488,7 @@ model ClassSchedule {
   endTime     String?
   subject     String
   teacherName String?
+  teacherPhotoUrl String?
   topic       String
   youtubeLink String?
   notes       String?     @db.Text

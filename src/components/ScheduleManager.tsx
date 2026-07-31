@@ -35,6 +35,7 @@ interface ScheduleEntry {
   endTime: string | null;
   subject: string;
   teacherName: string | null;
+  teacherPhotoUrl: string | null;
   topic: string;
   youtubeLink: string | null;
   notes: string | null;
@@ -48,6 +49,7 @@ const emptyForm = {
   endTime: "",
   subject: "",
   teacherName: "",
+  teacherPhotoUrl: "",
   topic: "",
   youtubeLink: "",
   notes: "",
@@ -101,6 +103,7 @@ export function ScheduleManager() {
       endTime: entry.endTime ?? "",
       subject: entry.subject,
       teacherName: entry.teacherName ?? "",
+      teacherPhotoUrl: entry.teacherPhotoUrl ?? "",
       topic: entry.topic,
       youtubeLink: entry.youtubeLink ?? "",
       notes: entry.notes ?? "",
@@ -331,6 +334,16 @@ export function ScheduleManager() {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="mb-1 block text-slate-500">Teacher photo URL (optional)</span>
+              <input
+                value={form.teacherPhotoUrl}
+                onChange={(event) => setForm({ ...form, teacherPhotoUrl: event.target.value })}
+                placeholder="https://... (leave blank to show initials)"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-atomic-orange dark:border-slate-700 dark:bg-slate-900"
+              />
             </label>
 
             <label className="text-sm">
