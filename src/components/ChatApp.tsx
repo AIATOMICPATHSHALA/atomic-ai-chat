@@ -772,11 +772,7 @@ export function ChatApp({
                   <p className="max-w-32 truncate font-medium text-slate-800 dark:text-slate-100">
                     {userName || userEmail}
                   </p>
-                  {authBackend && (
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                      {authBackend}
-                    </p>
-                  )}
+              
                 </div>
               </div>
             )}
