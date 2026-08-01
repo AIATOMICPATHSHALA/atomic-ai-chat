@@ -3,7 +3,7 @@
 import { Logo } from "@/components/Logo";
 import Link from "next/link";
 import type { ChatSession } from "@/types/chat";
-import { ClipboardList, CalendarDays, LayoutDashboard, MessageSquarePlus, PanelLeftClose, Trash2 } from "lucide-react";
+import { ClipboardList, CalendarDays, LayoutDashboard, MessageSquarePlus, BookOpenCheck, PanelLeftClose, Trash2 } from "lucide-react";
 
 interface SidebarProps {
   chats: ChatSession[];
@@ -49,6 +49,7 @@ export function Sidebar({
           <MessageSquarePlus className="h-4 w-4" />
           New Doubt
         </button>
+
         {onOpenQuiz && (
           <button
             onClick={onOpenQuiz}
@@ -58,14 +59,28 @@ export function Sidebar({
             NEET Quiz
           </button>
         )}
-        <Link
-          href="/schedule"
-          onClick={onClose}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-        >
-          <CalendarDays className="h-4 w-4" />
-          Class Schedule
-        </Link>
+
+        {/* Board Exam Hub aur Class Schedule - vertical, alag colors */}
+        <div className="flex flex-col gap-2">
+          <Link
+            href="/board-exam"
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-50 border border-purple-200 px-4 py-3 text-sm font-medium text-purple-700 transition-all hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900/30"
+          >
+            <BookOpenCheck className="h-4 w-4" />
+            Board Exam Hub
+          </Link>
+
+          <Link
+            href="/schedule"
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm font-medium text-green-700 transition-all hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/30"
+          >
+            <CalendarDays className="h-4 w-4" />
+            Class Schedule
+          </Link>
+        </div>
+
         <Link
           href="/dashboard"
           onClick={onClose}
