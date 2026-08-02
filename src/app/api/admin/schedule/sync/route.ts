@@ -14,6 +14,24 @@ const VALID_BATCHES = new Set([
   "NO_BATCH",
 ]);
 
+const BATCH_ALIASES = new Map(
+  [
+    ["SELECTION_PRO", "SELECTION_PRO"],
+    ["SELECTION_PRO_BATCH", "SELECTION_PRO"],
+    ["SELECTION_1_0", "SELECTION_1_0"],
+    ["SELECTION_1_0_BATCH", "SELECTION_1_0"],
+    ["SELECTION_10", "SELECTION_1_0"],
+    ["SELECTION_10_BATCH", "SELECTION_1_0"],
+    ["ARAMBH", "ARAMBH"],
+    ["ARAMBH_BATCH", "ARAMBH"],
+    ["MANZIL", "MANZIL"],
+    ["MANZIL_BATCH", "MANZIL"],
+    ["UDAAN", "UDAAN"],
+    ["UDAAN_BATCH", "UDAAN"],
+    ["NO_BATCH", "NO_BATCH"],
+  ].map(([alias, batch]) => [alias, batch] as const)
+);
+
 function accessError(error: unknown) {
   if (error instanceof Error && error.message === "UNAUTHORIZED") {
     return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
@@ -29,7 +47,7 @@ function accessError(error: unknown) {
 function parseStartTime(raw: string): string | null {
   const cleaned = raw.trim().replace(/\s+/g, " ");
   if (!cleaned) return null;
-  const match = /^(\d{1,2})\s*:\s*(\d{2})\s*(am|pm)?$/i.exec(cleaned);
+  const match = /^(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*\d{2})?\s*(am|pm)?$/i.exec(cleaned);
   if (!match) return null;
 
   let hours = Number(match[1]);
@@ -43,15 +61,61 @@ function parseStartTime(raw: string): string | null {
   return `${String(hours).padStart(2, "0")}:${minutes}`;
 }
 
-// "01/08/2026" (dd/mm/yyyy) -> Date
-function parseSheetDate(raw: string): Date | null {
-  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(raw.trim());
-  if (!match) return null;
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3]);
+function normalizeBatch(raw: string) {
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function parseBatches(raw: string) {
+  const batches = new Set<string>();
+  const tokens = raw
+    .split(/[,;\n|/]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  for (const token of tokens) {
+    const normalized = normalizeBatch(token);
+    if (normalized === "ALL" || normalized === "ALL_BATCHES") {
+      for (const batch of VALID_BATCHES) {
+        if (batch !== "NO_BATCH") batches.add(batch);
+      }
+      continue;
+    }
+
+    const batch = BATCH_ALIASES.get(normalized) ?? normalized;
+    if (VALID_BATCHES.has(batch)) {
+      batches.add(batch);
+    }
+  }
+
+  return Array.from(batches);
+}
+
+function buildUtcDate(year: number, month: number, day: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
+// "2026-08-03" or "01/08/2026" (dd/mm/yyyy) -> Date
+function parseSheetDate(raw: string): Date | null {
+  const cleaned = raw.trim();
+  const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(cleaned);
+  if (isoMatch) {
+    return buildUtcDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
+  }
+
+  const slashMatch = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(cleaned);
+  if (slashMatch) {
+    return buildUtcDate(Number(slashMatch[3]), Number(slashMatch[2]), Number(slashMatch[1]));
+  }
+
+  return null;
 }
 
 function buildNotes(row: SheetScheduleRow): string | null {
@@ -78,12 +142,12 @@ export async function POST() {
     let skipped = 0;
 
     for (const row of rows) {
-      const batch = row.batch.toUpperCase().replace(/\s+/g, "_");
+      const batches = parseBatches(row.batch);
       const classDate = parseSheetDate(row.date);
       const startTime = parseStartTime(row.startTimeRaw);
       const subject = row.subject.trim();
 
-      if (!VALID_BATCHES.has(batch) || !classDate || !startTime || !subject) {
+      if (batches.length === 0 || !classDate || !startTime || !subject) {
         skipped += 1;
         continue;
       }
@@ -93,40 +157,42 @@ export async function POST() {
       const youtubeLink = /^https?:\/\//i.test(row.recording.trim()) ? row.recording.trim() : null;
       const notes = buildNotes(row);
 
-      const existing = await prisma.classSchedule.findFirst({
-        where: {
-          batch: batch as never,
-          classDate,
-          startTime,
-          subject,
-        },
-      });
-
-      if (existing) {
-        await prisma.classSchedule.update({
-          where: { id: existing.id },
-          data: {
-            teacherName,
-            topic: topic || existing.topic,
-            youtubeLink,
-            notes,
-          },
-        });
-        updated += 1;
-      } else {
-        await prisma.classSchedule.create({
-          data: {
+      for (const batch of batches) {
+        const existing = await prisma.classSchedule.findFirst({
+          where: {
             batch: batch as never,
             classDate,
             startTime,
             subject,
-            teacherName,
-            topic,
-            youtubeLink,
-            notes,
           },
         });
-        created += 1;
+
+        if (existing) {
+          await prisma.classSchedule.update({
+            where: { id: existing.id },
+            data: {
+              teacherName,
+              topic: topic || existing.topic,
+              youtubeLink,
+              notes,
+            },
+          });
+          updated += 1;
+        } else {
+          await prisma.classSchedule.create({
+            data: {
+              batch: batch as never,
+              classDate,
+              startTime,
+              subject,
+              teacherName,
+              topic,
+              youtubeLink,
+              notes,
+            },
+          });
+          created += 1;
+        }
       }
     }
 
@@ -135,6 +201,10 @@ export async function POST() {
     const response = accessError(error);
     if (response) return response;
     console.error("[Schedule Sync API]", error);
-    return NextResponse.json({ error: "Could not sync schedule from Google Sheet." }, { status: 500 });
+    const message =
+      error instanceof Error && error.message.includes("configured")
+        ? error.message
+        : "Could not sync schedule from Google Sheet.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

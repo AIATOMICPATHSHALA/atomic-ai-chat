@@ -15,6 +15,7 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/atomic-pathshala
 JWT_ACCESS_SECRET=<32+ char random string>
 JWT_REFRESH_SECRET=<alag 32+ char random string>
 GOOGLE_SHEET_ID=<sheet URL se, /d/ aur /edit ke beech wala part>
+GOOGLE_SERVICE_ACCOUNT_JSON=<production deploy me service account JSON>
 ```
 
 Random secret generate karne ke liye: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
@@ -32,9 +33,14 @@ Random secret generate karne ke liye: `node -e "console.log(require('crypto').ra
 1. Google Cloud Console -> naya project -> "Google Sheets API" enable karo
 2. IAM & Admin -> Service Accounts -> naya service account banao -> Keys -> "Add Key" -> JSON -> download
 3. Downloaded file ko project root me `service-account.json` naam se rakho
+   - Live deploy/Vercel par file upload karne ke bajay env me `GOOGLE_SERVICE_ACCOUNT_JSON` set karo. Isme service account JSON ka pura content one-line JSON string ki tarah paste kar sakte ho.
 4. **`.gitignore` me `service-account.json` aur `.env.local` dono add karo** — kabhi commit mat karna
 5. Apni Google Sheet kholo -> Share -> service account ka email (JSON file ke `client_email` field me hai) ko Editor access do
 6. Sheet me ek tab banao naam `Students` aur pehli row me headers: `Atomic ID | Name | Email | Phone | Batch | Plan | Status | Expires At | Synced At`
+7. Schedule sync ke liye `Schedule` tab me compact headers chalenge: `Batch | Class Date | Time | Subject | Teacher Name | Topic | YouTube Link | Notes`
+   - Ek hi row ko multiple batches me sync karne ke liye `Batch` cell me `SELECTION_PRO, SELECTION_1_0, ARAMBH` likh sakte ho.
+   - Checkbox style chahiye to separate columns banao: `SELECTION_PRO | SELECTION_1_0 | ARAMBH | MANZIL | UDAAN`. Jis batch ke liye class hai us column me checkbox checked/`TRUE` rakho.
+   - `Subject` dropdown values: `Physics`, `Chemistry`, `Biology`. `Teacher Name` dropdown me app wale teacher names rakh sakte ho.
 
 ## File structure jo mila
 
