@@ -29,6 +29,12 @@ interface ScheduleEntry {
   notes: string | null;
 }
 
+interface GroupedEntry {
+  key: string;
+  entries: ScheduleEntry[];
+  batchLabels: string[];
+}
+
 type ClassStatus = "live" | "upcoming" | "completed";
 
 function formatTime12h(time: string) {
@@ -59,7 +65,7 @@ function getStatus(entry: ScheduleEntry, now: Date): ClassStatus {
   const start = buildDateTime(entry.classDate, entry.startTime);
   const end = entry.endTime
     ? buildDateTime(entry.classDate, entry.endTime)
-    : new Date(start.getTime() + 2 * 60 * 60 * 1000); // default 2hr class length
+    : new Date(start.getTime() + 2 * 60 * 60 * 1000);
   if (now < start) return "upcoming";
   if (now >= start && now <= end) return "live";
   return "completed";
@@ -76,7 +82,7 @@ function timeUntil(entry: ScheduleEntry, now: Date) {
 }
 
 function getWeekDates(centerDate: Date) {
-  const day = centerDate.getDay(); // 0 = Sunday
+  const day = centerDate.getDay();
   const mondayOffset = day === 0 ? -6 : 1 - day;
   const monday = new Date(centerDate);
   monday.setDate(centerDate.getDate() + mondayOffset);
@@ -93,6 +99,16 @@ function isSameDate(a: Date, b: Date) {
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
   );
+}
+
+function groupKey(entry: ScheduleEntry) {
+  return [
+    entry.classDate,
+    entry.startTime,
+    entry.subject,
+    entry.topic,
+    entry.teacherName ?? "",
+  ].join("|");
 }
 
 export function StudentSchedule() {
@@ -140,6 +156,8 @@ export function StudentSchedule() {
   }, []);
 
   const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
+  const monthLabel = selectedDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
   const goToPrevWeek = () => {
     const next = new Date(selectedDate);
     next.setDate(next.getDate() - 7);
@@ -151,16 +169,36 @@ export function StudentSchedule() {
     next.setDate(next.getDate() + 7);
     setSelectedDate(next);
   };
-  const monthLabel = selectedDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
-  const visibleEntries = useMemo(() => {
-    return schedules
+  const groupedEntries = useMemo<GroupedEntry[]>(() => {
+    const filtered = schedules
       .filter((entry) => isSameDate(new Date(entry.classDate), selectedDate))
       .filter((entry) =>
         subjectFilter === "All" ? true : entry.subject.toLowerCase() === subjectFilter.toLowerCase()
       )
-      .filter((entry) => (liveOnly ? getStatus(entry, now) === "live" : true))
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+      .filter((entry) => (liveOnly ? getStatus(entry, now) === "live" : true));
+
+    const map = new Map<string, ScheduleEntry[]>();
+    for (const entry of filtered) {
+      const key = groupKey(entry);
+      const existing = map.get(key);
+      if (existing) {
+        existing.push(entry);
+      } else {
+        map.set(key, [entry]);
+      }
+    }
+
+    const groups: GroupedEntry[] = Array.from(map.entries()).map(([key, entries]) => ({
+      key,
+      entries,
+      batchLabels: entries.map(
+        (e) => BATCHES.find((b) => b.value === e.batch)?.label ?? e.batch
+      ),
+    }));
+
+    groups.sort((a, b) => a.entries[0].startTime.localeCompare(b.entries[0].startTime));
+    return groups;
   }, [schedules, selectedDate, subjectFilter, liveOnly, now]);
 
   return (
@@ -194,28 +232,28 @@ export function StudentSchedule() {
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex flex-1 items-center justify-between gap-2 overflow-x-auto pb-1">
-          {weekDates.map((date) => {
-            const active = isSameDate(date, selectedDate);
-            const isToday = isSameDate(date, new Date());
-            return (
-              <button
-                key={date.toISOString()}
-                type="button"
-                onClick={() => setSelectedDate(date)}
-                className={`flex min-w-[52px] flex-col items-center rounded-2xl px-2 py-2 transition-colors ${
-                  active
-                    ? "bg-atomic-orange/10 text-atomic-orange ring-1 ring-atomic-orange/30"
-                    : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span className="text-[10px] font-bold uppercase tracking-wide">
-                  {date.toLocaleDateString("en-GB", { weekday: "short" })}
-                </span>
-                <span className="mt-0.5 text-lg font-extrabold">{date.getDate()}</span>
-                {isToday && <span className="mt-0.5 text-[9px] font-bold uppercase">Today</span>}
-              </button>
-            );
-          })}
+            {weekDates.map((date) => {
+              const active = isSameDate(date, selectedDate);
+              const isToday = isSameDate(date, new Date());
+              return (
+                <button
+                  key={date.toISOString()}
+                  type="button"
+                  onClick={() => setSelectedDate(date)}
+                  className={`flex min-w-[52px] flex-col items-center rounded-2xl px-2 py-2 transition-colors ${
+                    active
+                      ? "bg-atomic-orange/10 text-atomic-orange ring-1 ring-atomic-orange/30"
+                      : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-wide">
+                    {date.toLocaleDateString("en-GB", { weekday: "short" })}
+                  </span>
+                  <span className="mt-0.5 text-lg font-extrabold">{date.getDate()}</span>
+                  {isToday && <span className="mt-0.5 text-[9px] font-bold uppercase">Today</span>}
+                </button>
+              );
+            })}
           </div>
           <button
             type="button"
@@ -294,11 +332,11 @@ export function StudentSchedule() {
         <div className="mt-6 space-y-4">
           {loading ? (
             <p className="text-sm text-slate-500">Loading...</p>
-          ) : visibleEntries.length === 0 ? (
+          ) : groupedEntries.length === 0 ? (
             <p className="text-sm text-slate-500">No classes found for this day.</p>
           ) : (
-            visibleEntries.map((entry) => {
-              const batchLabel = BATCHES.find((b) => b.value === entry.batch)?.label ?? entry.batch;
+            groupedEntries.map((group) => {
+              const entry = group.entries[0];
               const status = getStatus(entry, now);
               const barColor =
                 status === "live"
@@ -309,7 +347,7 @@ export function StudentSchedule() {
 
               return (
                 <div
-                  key={entry.id}
+                  key={group.key}
                   className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/60 backdrop-blur-sm transition-transform hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/60"
                 >
                   <div className={`absolute bottom-0 left-0 top-0 w-1.5 ${barColor}`} />
@@ -324,11 +362,18 @@ export function StudentSchedule() {
                           {formatTime12h(entry.startTime)}
                           {entry.endTime ? ` to ${formatTime12h(entry.endTime)}` : ""}
                         </span>
-                        <span className="rounded bg-slate-200/60 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-700/60">
-                          {batchLabel}
-                        </span>
                       </div>
-                      <h3 className="mt-1 truncate text-lg font-bold">{entry.topic}</h3>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {group.batchLabels.map((label, i) => (
+                          <span
+                            key={i}
+                            className="rounded-full bg-atomic-orange/10 px-2.5 py-0.5 text-[11px] font-semibold text-atomic-orange"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                      <h3 className="mt-1.5 truncate text-lg font-bold">{entry.topic}</h3>
                       {entry.teacherName && (
                         <div className="mt-2 flex items-center gap-2">
                           {entry.teacherPhotoUrl ? (
