@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, SkipForward, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MathText } from "@/components/MathText";
 import type { QuizConfigEntry, QuizAnswer, QuizQuestion, QuizSubject } from "@/lib/quiz";
 
 type QuizStage = "intro" | "loading" | "active" | "summary" | "review";
@@ -221,6 +222,16 @@ export function QuizMode({ onClose }: QuizModeProps) {
     },
     [currentQuestion, goToNext, selectedOption]
   );
+
+  const skipQuestion = useCallback(() => {
+    if (!currentQuestion || selectedOption !== null) return;
+    goToNext({
+      questionId: currentQuestion.id,
+      selectedIndex: null,
+      correct: false,
+      timeTakenSeconds: Math.round((Date.now() - questionStartRef.current) / 1000),
+    });
+  }, [currentQuestion, goToNext, selectedOption]);
 
   const finishQuizDueToTimeout = useCallback(() => {
     setAnswers((current) => {
@@ -504,8 +515,8 @@ const subjectResults = useMemo(() => {
               />
             </div>
 
-            <p className="mb-5 mt-4 whitespace-pre-line text-base font-medium leading-relaxed text-slate-900 dark:text-white">
-              {currentQuestion.text}
+            <p className="mb-5 mt-4 text-base font-medium leading-relaxed text-slate-900 dark:text-white">
+              <MathText text={currentQuestion.text} />
             </p>
 
             <div className="space-y-2.5">
@@ -530,7 +541,7 @@ const subjectResults = useMemo(() => {
                   >
                     <span>
                       <strong className="mr-2">{String.fromCharCode(65 + index)}.</strong>
-                      {option}
+                      <MathText text={option} />
                     </span>
                     {showResult && isCorrectOption && <CheckCircle2 className="h-4 w-4 shrink-0" />}
                     {showResult && isSelected && !isCorrectOption && (
@@ -540,6 +551,16 @@ const subjectResults = useMemo(() => {
                 );
               })}
             </div>
+
+            <button
+              type="button"
+              disabled={selectedOption !== null}
+              onClick={skipQuestion}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              <SkipForward className="h-4 w-4" />
+              Skip question
+            </button>
           </div>
         )}
 
@@ -603,8 +624,8 @@ const subjectResults = useMemo(() => {
                   <p className="mb-2 text-xs font-semibold text-slate-500">
                     Q{index + 1} · {question.subject} {question.topic ? `· ${question.topic}` : ""}
                   </p>
-                  <p className="mb-3 whitespace-pre-line text-sm font-medium leading-relaxed text-slate-900 dark:text-white">
-                    {question.text}
+                  <p className="mb-3 text-sm font-medium leading-relaxed text-slate-900 dark:text-white">
+                    <MathText text={question.text} />
                   </p>
                   <div className="mb-3 space-y-1.5">
                     {question.options.map((option, optIndex) => {
@@ -621,12 +642,14 @@ const subjectResults = useMemo(() => {
                                 : "text-slate-500"
                           }`}
                         >
-                          {String.fromCharCode(65 + optIndex)}. {option}
+                          {String.fromCharCode(65 + optIndex)}. <MathText text={option} />
                         </p>
                       );
                     })}
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">{question.explanation}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    <MathText text={question.explanation} />
+                  </p>
                 </div>
               );
             })}
